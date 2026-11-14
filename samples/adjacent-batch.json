@@ -1,0 +1,19 @@
+{
+  "operations": [
+    {
+      "op": "correct",
+      "order_id": "O-1002",
+      "amount": "900.00"
+    },
+    {
+      "op": "correct",
+      "order_id": "O-1003",
+      "amount": "500.00"
+    },
+    {
+      "op": "correct",
+      "order_id": "O-1004",
+      "amount": "1600.00"
+    }
+  ]
+}

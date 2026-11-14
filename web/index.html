@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>订单窗口指标 · 增量更新控制台</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到主要内容</a>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div>
+      <h1>订单窗口指标</h1>
+      <p class="brand-sub">增量重算 · 影响范围 · 修改前后对照</p>
+    </div>
+  </div>
+  <div class="toolbar">
+    <label class="field inline">
+      <span>评估时刻 T</span>
+      <select id="asof" aria-describedby="asof-hint"></select>
+    </label>
+    <button class="btn" id="btn-verify" type="button">校验指标缓存</button>
+    <button class="btn btn-quiet" id="btn-reset" type="button">重置样例</button>
+  </div>
+  <p class="sr-only" id="asof-hint">选择客户时间轴上的评估时刻，指标按该时刻重新计算并展示。</p>
+</header>
+
+<main id="main">
+  <section class="kpi-row" id="kpis" aria-label="总体指标"></section>
+
+  <section class="panel definitions" aria-labelledby="def-title">
+    <div class="panel-head">
+      <h2 id="def-title">口径定义</h2>
+      <button class="link-btn" id="def-toggle" type="button" aria-expanded="false" aria-controls="def-body">展开细节</button>
+    </div>
+    <div class="def-grid" id="def-body">
+      <p><span class="def-key">滚动七日金额</span><span id="def-rolling">—</span></p>
+      <p><span class="def-key">累计金额</span><span id="def-cumulative">—</span></p>
+      <p><span class="def-key">最近三笔均值</span><span id="def-last3">—</span></p>
+      <p><span class="def-key">撤销口径</span><span id="def-voided">—</span></p>
+      <p class="def-wide"><span class="def-key">时间轴</span><span id="def-timeline">—</span></p>
+    </div>
+  </section>
+
+  <div class="split">
+    <section class="panel" aria-labelledby="customers-title">
+      <div class="panel-head">
+        <h2 id="customers-title">客户指标</h2>
+        <span class="panel-meta" id="customers-meta">—</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="customer-table">
+          <caption class="sr-only">按客户展示评估时刻的滚动七日金额、累计金额与最近三笔均值</caption>
+          <thead>
+            <tr>
+              <th scope="col">客户</th>
+              <th scope="col" class="num">滚动七日</th>
+              <th scope="col" class="num">累计</th>
+              <th scope="col" class="num">最近三笔均值</th>
+              <th scope="col" class="num">订单</th>
+              <th scope="col">最新事件</th>
+            </tr>
+          </thead>
+          <tbody id="customer-rows">
+            <tr><td colspan="6" class="empty">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="customer-detail" id="customer-detail" hidden></div>
+    </section>
+
+    <aside class="panel composer" aria-labelledby="composer-title">
+      <div class="panel-head">
+        <h2 id="composer-title">批次操作</h2>
+        <span class="panel-meta">导入 · 撤销 · 更正</span>
+      </div>
+      <p class="hint">先预览，系统解释影响后再提交。提交是单个事务：失败时不会发布任何一部分指标。</p>
+      <div class="chips" id="demo-chips" role="group" aria-label="样例批次"></div>
+      <label class="field">
+        <span>批次 JSON</span>
+        <textarea id="payload" spellcheck="false" rows="8" aria-describedby="payload-hint"></textarea>
+      </label>
+      <p class="hint" id="payload-hint">金额使用元（字符串，最多两位小数）；时间为 ISO-8601 UTC。</p>
+      <div class="composer-actions">
+        <button class="btn btn-primary" id="btn-preview" type="button">预览影响</button>
+        <button class="btn" id="btn-commit" type="button" disabled>提交批次</button>
+      </div>
+      <label class="check">
+        <input type="checkbox" id="simulate-failure">
+        <span>模拟提交中断（验证原子性）</span>
+      </label>
+      <div class="errors" id="errors" role="alert" hidden></div>
+    </aside>
+  </div>
+
+  <section class="impact" id="impact" aria-labelledby="impact-title" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="impact-title">影响范围与修改前后对照</h2>
+        <span class="panel-meta" id="impact-meta"></span>
+      </div>
+      <div class="impact-headline" id="impact-headline"></div>
+      <ul class="explain" id="impact-sentences"></ul>
+      <div id="impact-customers"></div>
+      <div class="impact-foot">
+        <button class="btn" id="btn-verify-2" type="button">复核缓存与事实一致</button>
+        <span class="hint" id="verify-note"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="history-title">
+    <div class="panel-head">
+      <h2 id="history-title">批次历史</h2>
+      <span class="panel-meta" id="history-meta">—</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="history-table">
+        <caption class="sr-only">最近的提交批次</caption>
+        <thead>
+          <tr>
+            <th scope="col">批次</th>
+            <th scope="col">提交时间</th>
+            <th scope="col" class="num">操作</th>
+            <th scope="col" class="num">客户</th>
+            <th scope="col" class="num">重算 / 变化</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody id="history-rows">
+          <tr><td colspan="6" class="empty">暂无提交</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="batch-detail" class="batch-detail" hidden></div>
+  </section>
+
+  <section class="panel" aria-labelledby="audit-title">
+    <div class="panel-head">
+      <h2 id="audit-title">操作日志</h2>
+      <span class="panel-meta">只追加，不修改</span>
+    </div>
+    <ol class="audit" id="audit-list"></ol>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>本地应用 · Python 标准库 + SQLite · 无外部依赖 · <span id="footer-asof">—</span></p>
+</footer>
+
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="/app.js" defer></script>
+</body>
+</html>

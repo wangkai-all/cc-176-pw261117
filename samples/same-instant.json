@@ -1,0 +1,11 @@
+{
+  "operations": [
+    {
+      "op": "import",
+      "order_id": "O-1007",
+      "customer_id": "C-1001",
+      "amount": "310.00",
+      "occurred_at": "2026-11-09T09:00:00Z"
+    }
+  ]
+}
